@@ -1,0 +1,10 @@
+Karnataka/Udupi p1: 10 ok, 0 rejected
+Karnataka/Udupi p2: 0 ok, 0 rejected
+Karnataka/Udupi p3: 0 ok, 0 rejected
+Karnataka/Udupi p4: 15 ok, 0 rejected
+Karnataka/Udupi p5: 0 ok, 0 rejected ERROR ConnectError: [SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: unable to get local issuer certificate (_ssl.c:1007)
+Karnataka/Udupi p6: 0 ok, 0 rejected ERROR ConnectError: [SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: unable to get local issuer certificate (_ssl.c:1007)
+Karnataka/Udupi p7: 28 ok, 0 rejected
+Karnataka/Udupi p8: 0 ok, 0 rejected ERROR ClientError: 429 RESOURCE_EXHAUSTED. {'error': {'code': 429, 'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usage, head to: https://ai.dev
+Karnataka/Udupi p9: 3 ok, 0 rejected
+Karnataka/Udupi p10: 0 ok, 0 rejected ERROR ClientError: 429 RESOURCE_EXHAUSTED. {'error': {'code': 429, 'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usage, head to: https://ai.dev

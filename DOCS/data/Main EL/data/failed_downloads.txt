@@ -1,0 +1,1 @@
+crop data (India Data Portal) | https://ckandev.indiadataportal.com/dataset/80789131-1b7d-4809-a03e-7ce88cee2917/resource/ead44f5f-6471-48ec-a488-4b5894302aaa/download/crop-wise-area-production-yield.csv

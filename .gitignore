@@ -1,0 +1,38 @@
+# ---- Secrets (never push) ----
+.env
+.env.*
+
+# ---- Datasets: never in the repo (faculty rule), shared via Google Drive ----
+# Raw data (re-download with DOCS/data/Main EL/download_data.py; links CSV stays in git)
+DOCS/data/Main EL/data/imd/
+DOCS/data/Main EL/data/imd_temp/
+DOCS/data/Main EL/data/crops/
+DOCS/data/Main EL/data/plans/
+DOCS/data/Main EL/data/map_2011/
+DOCS/data/Main EL/data/district_crosswalk.csv
+# Data made from the plans by p3/ (rebuild commands in p3/WORKLOG.md)
+plan_text/
+planted_text/
+claims_rules/
+claims_rules_planted/
+plan_figures.csv
+crop_names.csv
+review/*.xlsx
+
+# ---- Caches and temporary files ----
+claims/_cache/
+__pycache__/
+*.pyc
+.pytest_cache/
+p3/tests/_tmp_rules/
+.ipynb_checkpoints/
+
+# ---- Office lock files and OS clutter ----
+~$*
+Thumbs.db
+desktop.ini
+.DS_Store
+
+# ---- Python environments ----
+.venv/
+venv/

@@ -1,0 +1,135 @@
+% Person 3 -- Report section: Introduction and Related Work
+% IEEEtran conference format. Include with \input{intro_related} and add refs.bib.
+% Extractor numbers below are final (held-out review, 4 Nov 2026: review/claim_review_v2.xlsx).
+% TODO when Person 5 freezes results: add the headline agent-vs-baseline result to the contributions.
+% Labels stay described as "labelled with AI assistance" (no hand check was done; the 30-row
+% spot-check in review/spotcheck.xlsx was a second AI-assisted pass, 30/30 agreed).
+
+\section{Introduction}
+\label{sec:intro}
+
+A large share of India's farmland is rainfed, so a late or broken south-west
+monsoon can decide a district's harvest. To prepare for such years, ICAR's Central Research
+Institute for Dryland Agriculture (ICAR-CRIDA), together with the state agricultural
+universities and the Department of Agriculture, has written a District Agriculture
+Contingency Plan for almost every district in the country: more than 580 by
+2016~\cite{rao2016realtime} and about 650 today~\cite{crida_plans}. Each plan follows
+the same template. It records the district's normal rainfall and onset week, its main
+crops and sowing windows, and then says what farmers should do when the monsoon is
+delayed by two to eight weeks, when a dry spell follows sowing, when drought strikes
+early, mid or late in the season, and when floods or heat waves occur.
+
+These plans are static documents built on the data of their time. Of the 105 plans
+used in this study, 93 are dated 2011 or 2012, and the plans we read cite crop
+statistics from 2004--2011. Since then the monsoon itself has been shown to change:
+extreme rain events over central India have become more frequent and
+stronger~\cite{goswami2006extreme,roxy2017threefold}, dry spells during the peak
+monsoon months have become more frequent~\cite{singh2014spells}, and trends differ
+from one subdivision to the next~\cite{guhathakurta2008trends}. Cropping patterns have
+shifted too. A plan that names a crop the district no longer grows, or a sowing window
+that the rain no longer opens, gives poor advice in exactly the year it is needed. The
+question is pressing: on 23 June 2026, with about 315 districts flagged for a possibly
+weak monsoon, the Union Agriculture Minister asked the states to review and update
+their contingency plans for local conditions~\cite{pib2026kharif}. By August, ICAR-CRIDA
+had updated the plans of 342 districts in 15 states, but the updated plans are kept at
+district level and not maintained centrally~\cite{loksabha2026dacp}, so the plans that can
+be studied are still the published 2011--2013 versions. Yet we found no study that checks
+the plans against newer data at scale.
+
+Doing this by hand is slow. The 105 plans in our study run to 3,321 pages of
+semi-structured tables and prose, and every statement in them would have to be
+matched to rainfall and crop records. Large language models (LLMs) can read such text,
+but used alone they tend to invent numbers and evidence. We therefore split the work.
+Code tools compute every number from 45 years of IMD gridded daily
+rainfall~\cite{pai2014gridded,imd_gridded} and 26 years of district crop
+statistics~\cite{moa_crops}. LLM agents only decide which evidence a claim needs,
+judge it, and check each other. Before any agent runs, a deterministic \emph{Claim
+Extractor} reads the plans' fixed table template and turns each plan into small, testable
+claims, each with a page reference and a word-for-word quote that is checked against the
+page. An \emph{Investigator} calls the tools. A \emph{Judge} labels each claim supported,
+contradicted or not enough evidence. A \emph{Verifier} re-runs every cited check, and
+a \emph{Synthesizer} turns the labels into a 0--100 freshness score for each district.
+
+We ask: \emph{can tool-using LLM agents, which turn plan text into testable claims and
+check them against rainfall and crop records, find outdated plan assumptions more
+accurately than a rule-based checker or a single LLM prompt?}
+
+Our contributions are:
+\begin{itemize}
+  \item A dataset of about 16,500 claims from 105 district contingency plans in
+        Karnataka, Maharashtra, Rajasthan and Telangana, linked to Census 2011 districts,
+        in which every claim carries a page reference and a verbatim quote. On 300
+        claims from 30 held-out plans, labelled with AI assistance against the source
+        PDFs, the extractor reaches 93.0\% precision and 89.7\% recall. The dataset also
+        includes 683 planted errors with known answers for testing the checkers.
+  \item A set of code tools that compare 1981--2010 with 2011 onward for each
+        district: seasonal rainfall, sowing-rain onset, dry spells, heavy-rain days,
+        crop-area ranks and crop shifts in deficient years, with non-parametric tests
+        corrected for testing many districts.
+  \item A multi-agent checker in which no agent computes a number, evaluated
+        against a rule-based checker, a single LLM prompt and an ablation without the
+        Verifier, using label F1, planted errors caught, wrong numbers per 100 claims,
+        citation accuracy and cost per plan.
+  \item A per-district freshness score with evidence-cited draft updates for
+        experts, shown on a map dashboard, with the data and code released openly.
+\end{itemize}
+
+Section~\ref{sec:related} reviews related work. The following sections describe the
+data, the evidence tools and the agent system, and then report validation results,
+discussion and limitations.
+
+\section{Related Work}
+\label{sec:related}
+
+\subsection{Agricultural contingency planning in India}
+District contingency plans were prepared by ICAR-CRIDA and its partners, mostly in
+2011--2013, and are published as one PDF per district~\cite{crida_plans}. Srinivasa
+Rao~\cite{rao2016realtime} describes how they are put into practice: interface
+meetings with state departments before each season, and real-time contingency
+measures in farmers' fields through the AICRPDA and NICRA networks. ICRISAT's ISSCA
+programme lists district contingency and drought-proofing plans as a scalable
+adaptation measure~\cite{icrisat_issca}. CRIDA's online contingency tool shows a
+district's plan beside current-season rainfall~\cite{crida_plans}, and
+SukhaRakshak AI, a chatbot from IWMI, answers farmers' questions from the
+plans~\cite{iwmi2025sukha}. All of these use the plans as written. None tests
+whether a plan's normal rainfall, crops, sowing windows or trigger thresholds still
+match the district's recent data, which is the gap this work addresses.
+
+\subsection{Observed changes in the Indian monsoon}
+The IMD $0.25^\circ$ gridded daily rainfall data set~\cite{pai2014gridded} made
+long, district-scale rainfall analysis possible, and it is the rainfall source we
+use. Studies on IMD data report no long-term trend in all-India monsoon rainfall but
+clear changes at subdivision scale~\cite{guhathakurta2008trends}; more frequent and
+more intense extreme rain over central
+India~\cite{goswami2006extreme,roxy2017threefold}; and more frequent dry spells with
+more intense wet spells~\cite{singh2014spells}. This body of work describes how the
+monsoon has changed, but it is not tied to agricultural advice. We use the same kind
+of indices (onset, dry spells, heavy-rain days, deficient years) to test specific plan
+triggers and recommendations, district by district.
+
+\subsection{Automated claim verification}
+Fact verification is usually framed as checking a claim against a trusted source.
+FEVER~\cite{thorne2018fever} checks claims against Wikipedia sentences,
+Climate-FEVER~\cite{diggelmann2020climatefever} does the same for real-world climate
+claims, SciFact~\cite{wadden2020scifact} checks scientific claims against paper
+abstracts, and TabFact~\cite{chen2020tabfact} checks claims against a single table.
+FActScore~\cite{min2023factscore} splits long text into atomic facts and scores each
+one, which is close to how we split plans into claims, although our extractor uses rules
+over the plans' fixed template rather than an LLM. In all of these the evidence is
+a passage or a small table, and the label is fixed in time. Our claims are checked
+against long time series, and the question is whether a statement that was true
+for the 2000s still holds since 2011. That requires computation rather than lookup.
+
+\subsection{Tool-using and self-checking LLM agents}
+ReAct~\cite{yao2023react} interleaves reasoning steps with tool calls and showed
+fewer hallucinations on fact verification when the model could query an external
+source. Toolformer~\cite{schick2023toolformer} showed that LLMs can learn when and how
+to call APIs such as a calculator. Chain-of-Verification~\cite{dhuliawala2024cove}
+reduces hallucination by having the model plan and answer its own verification
+questions before revising its answer. In the climate domain,
+ChatClimate~\cite{vaghefi2023chatclimate} grounds GPT-4 answers in the IPCC AR6
+reports. We build on these ideas but go one step further on numbers: our agents never
+compute a value themselves; every number comes from a code tool, and a separate
+Verifier re-runs the cited tool calls and sends disagreements back for re-checking.
+To our knowledge, this is the first use of such a system to audit government
+agricultural plans against long-term observational data.
