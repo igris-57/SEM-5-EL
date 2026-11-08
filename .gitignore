@@ -17,13 +17,18 @@ claims_rules/
 claims_rules_planted/
 plan_figures.csv
 crop_names.csv
-review/*.xlsx
-review/llm_comparison.csv
 # p3/export.py output for Person 4 / Person 5
 data/processed/
 
+# ---- Not code: project documents and run logs (shared via Google Drive) ----
+DOCS/*.pdf
+DOCS/*.jpeg
+DOCS/data/Main EL/*.txt
+DOCS/data/Main EL/data/failed_downloads.txt
+claims/
+review/
+
 # ---- Caches and temporary files ----
-claims/_cache/
 __pycache__/
 *.pyc
 .pytest_cache/

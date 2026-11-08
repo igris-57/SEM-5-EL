@@ -177,3 +177,50 @@ def test_ditto_variants_resolved():  # R042 '--do--'
     c = pick("Karnataka/Bellary", claim_type="contingency_measure", normal_crop="Sorghum+ Groundnut(2:4)",
              condition="early_dry_spell")
     assert c and not any("do" == m.strip("- ").lower() for m in c[0]["measures"])
+
+
+# ---- independent review, 8 Nov 2026 ----
+
+def test_month_ordinal_is_a_week():  # Hassan "start and end of normal sowing week", Gondia, Medak
+    assert parse_range("May 2nd – May 3rd") == ((5, 2), (5, 3))
+    assert parse_range("July 1st –July 4th") == ((7, 1), (7, 4))
+    assert parse_range("June 2nd to July 2nd week") == ((6, 2), (7, 2))
+    assert parse_range("June 15th to July 15th") == ((6, 3), (7, 3))  # a day stays a day
+
+
+def test_week_ranges_and_spacing():
+    assert parse_range("1-3rd week of Nov.") == ((11, 1), (11, 3))  # Kota, Baran, Bundi
+    assert parse_range("14 th May to17 th June") == ((5, 2), (6, 3))  # Bagalkot
+    assert parse_range("15h June – 10th July") == ((6, 3), (7, 2))  # Amravati
+    assert parse_range("1st Nov. 20 th Nov") == ((11, 1), (11, 3))  # Beed
+
+
+def test_roman_and_dashed_delay_dates():
+    from p3.claims.dates import parse_point
+    assert parse_point("Delay by 2 weeks June IV week (kharif sowing June II FN)") == (6, 4)  # Yadgir
+    assert parse_point("Delay by 6 weeks August -2nd week") == (8, 2)  # Belgaum
+    assert parse_point("Delay by 8 weeks (3rd week of` August)") == (8, 3)  # Banswara
+
+
+def test_pali_start_and_end_rows_make_one_window():
+    cs = pick("Rajasthan/Pali", claim_type="sowing_window")
+    assert len(cs) == 10 and all(c["water_regime"] is None for c in cs)
+    wheat = [c for c in cs if c["crop"] == "Wheat"]
+    assert [(c["start_month"], c["start_week"], c["end_month"], c["end_week"]) for c in wheat] == [(11, 2, 12, 2)]
+
+
+def test_sangli_two_sugarcane_windows():
+    cs = [c for c in pick("Maharashtra/Sangli", claim_type="sowing_window") if "Sugarcane" in c["crop"]]
+    got = {(c["crop"], c["start_month"], c["end_month"]) for c in cs}
+    assert ("Sugarcane (Seasonal)", 1, 1) in got and ("Sugarcane (Pre seasonal)", 10, 11) in got
+
+
+def test_normal_onset_row_is_a_dry_spell():  # Tumkur p12
+    cs = [c for c in claims("Karnataka/Tumkur") if c["page"] == 12 and "Normal onset" in c["statement"]]
+    assert cs and all(c["condition"] == "early_dry_spell" for c in cs)
+    assert not [c for c in cs if c["claim_type"] == "contingency_crop_change" and "Cowpea" in c["recommended_crops"]]
+
+
+def test_measures_drop_list_numbers():
+    assert rules.measures_of("1.Repeated weeding 2.Removal of weaklings 3.Spray 2.0 % urea") == \
+        ["Repeated weeding", "Removal of weaklings", "Spray 2.0 % urea"]

@@ -1,5 +1,6 @@
 """Tests for the hand-off to Persons 4 and 5 (p3/export.py) and the planted-claim lookup.
     python -m pytest p3/tests"""
+import csv
 import json
 
 from p3.export import rule_fields
@@ -46,3 +47,15 @@ def test_planted_sowing_window_matches_start_and_end():
                             "error_type": "sowing_shift_6w", "claim_type": "sowing_window",
                             "planted_value": "7/2-9/2"})
     assert len(found) == 1 and "Groundnut" in found[0]["statement"]
+
+
+def test_planted_match_ignores_unchanged_claims():
+    # Jodhpur p6: a real wheat window equals the planted value by chance; it was never changed
+    rows = list(csv.DictReader(open(ROOT / "planted_text" / "answers.csv", encoding="utf-8")))
+    real = {}
+    for line in (ROOT / "claims_rules" / "Rajasthan" / "Jodhpur.jsonl").read_text(encoding="utf-8").splitlines():
+        c = json.loads(line)
+        real[c["claim_id"]] = c["quote_parts"]
+    for a in rows:
+        if a["plan_id"] == "Rajasthan/Jodhpur@planted":
+            assert all(real.get(c["claim_id"]) != c["quote_parts"] for c in planted_claims(a))

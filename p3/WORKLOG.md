@@ -199,3 +199,31 @@ plan figures, planted claims, crop names (with P2), report Intro + Related work.
 - data/processed/README.md (format + questions), p3/STATUS.md (done / not done / hand-over),
   tests/test_export.py (41 tests pass). .gitignore: data/processed/, review/llm_comparison.csv.
 - Copied data/processed + llm_comparison.csv to MAINEL_DRIVE_DATA; its README.txt updated.
+
+## 8 Nov 2026 — independent review and fixes before hand-off
+- User asked for a cross-check "as if a friend's AI checked it". A fresh reviewer agent (no
+  history) audited everything read-only: 39/40 random claims correct, all doc numbers matched,
+  41 tests passed. It found real problems; all verified, then fixed:
+  - dates.py: "Month 1st-4th" = week (Hassan header "normal sowing week"; corpus survey: this
+    form is a week everywhere), "1-3rd week", "to15", "15h", "1st Nov. 20 th Nov", Roman weeks
+    ("June IV week"), "August -2nd week", backtick. 217 delayed-onset claims gained dates
+    (Yadgir 201); 147 still undated (Jaipur/Dausa give none).
+  - rules.py: Pali "(Start)/(End)" rows -> one window per crop (20 wrong -> 10 right); Sangli
+    two labelled windows in one cell; "normal onset" row label wins over a leftover "Delay by"
+    (Tumkur p12; false Cowpea crop change gone); measures drop "3." list numbers.
+  - planted.py: planted_claims() ignores claims identical to the real plan's (Jodhpur#5,
+    Pali#1 were false matches); split Pali windows not used for planting -> 681 errors, 681/681.
+  - evalset.py: shuffle before numbering, blind eval_claims_draft.jsonl for agents + key csv for
+    P5, no claim id in both versions, planted filtered like real (no rule_note).
+  - intro_related.tex: 93.0/89.7 now "an earlier version ... errors then fixed", recall on 30
+    pages; crop-stat years 2000-2011 (most 2008-09; measured from ref_year); "nearly all from
+    2011-2012"; Gemini sentence notes empty dates; "first" softened; TODO for team on
+    contributions 2-4. 22 cites ok, braces balanced.
+- Rebuild: 16,506 claims (25 rejected), 681 planted, 3,259 figures, 1,224 crop names; byte-
+  identical on re-run; Gemini comparison unchanged (cache). 49 tests (8 new regression tests).
+- Docs updated: data/processed/README.md (blinding, multi-id scoring, unit errors 82 in 25 plans,
+  undated 147), p3/STATUS.md (independent check section, remaining issues), Drive README.
+- Repo cleanup: GitHub keeps code only; synopsis/work split/deadline image, download logs,
+  failed_downloads.txt, claims_pilot_run.log, review/heldout_plans.txt moved to Drive and
+  ignored; claims/_cache on Drive for reproducing the Gemini comparison. Root README.md added.
+- Drive folder: all 1,109 data files identical to the project (hash check).

@@ -227,6 +227,32 @@ def hazard_claims(page, carry=None):
 SOW_ROW = [(r"kharif", "kharif"), (r"rabi", "rabi"), (r"summer", None)]
 
 
+def start_end_claims(start_row, end_row, lab_i, head):
+    """One window per crop from a '(Start)' row and the '(End)' row below it (Pali)."""
+    lab = start_row[lab_i]
+    season = next(s for p, s in SOW_ROW if re.search(p, lab, re.I))
+    out = []
+    for ci in range(lab_i + 1, min(len(start_row), len(end_row), len(head))):
+        a, b = start_row[ci], end_row[ci]
+        if not a or not b or EMPTY.match(a) or EMPTY.match(b):
+            continue
+        crop = head[ci]
+        note = re.search(r"\(([A-Za-z][A-Za-z ]+)\)?", a)   # '2nd week of Oct. (Mustard)': rabi crop
+        if note and season == "rabi":
+            crop = note.group(1).strip()
+        if not is_crop_cell(crop):
+            continue
+        s, e = parse_range(a), parse_range(b)
+        if not s or not e:
+            continue
+        (m1, w1), (m2, w2) = s[0], e[1]
+        out.append(claim(claim_type="sowing_window", crop=crop, season=season, water_regime=None,
+                         start_month=m1, start_week=w1, end_month=m2, end_week=w2,
+                         quote_parts=[lab, a, end_row[lab_i], b],
+                         statement=f"Normal sowing window of {crop} ({season.title()}) is {a} to {b}."))
+    return out
+
+
 def sowing_claims(page):
     out = []
     for t in find_tables(page, r"sowing window"):
@@ -235,8 +261,18 @@ def sowing_claims(page):
         if head_i is None:
             continue
         head = rows[head_i]
-        for r in rows[head_i + 1:]:
+        body = rows[head_i + 1:]
+        for k, r in enumerate(body):
             lab_i = next((i for i, c in enumerate(r) if re.search(r"kharif|rabi", c, re.I)), None)
+            # Pali: '| Kharif- Rainfed (Start) |' and '| Kharif-Irrigated (End) |' are the start and
+            # end of one window, not two water regimes
+            if lab_i is not None and re.search(r"\(start\)", r[lab_i], re.I):
+                end = body[k + 1] if k + 1 < len(body) else []
+                if lab_i < len(end) and re.search(r"\(end\)", end[lab_i], re.I):
+                    out += start_end_claims(r, end, lab_i, head)
+                continue
+            if lab_i is not None and re.search(r"\(end\)", r[lab_i], re.I):
+                continue
             rest = [c for c in r[(lab_i if lab_i is not None else 1) + 1:] if c and not EMPTY.match(c)]
             if len(rest) >= 2 and all(to_crop_data_name(c) for c in rest):
                 # a crop sub-header for the rows below, with or without a season label:
@@ -264,14 +300,19 @@ def sowing_claims(page):
                 if note and not re.fullmatch(r"\s*(kharif|rabi|summer|irrigated|rainfed|pre\s*-?\s*monsoon)\s*",
                                              note.group(1), re.I):  # '(Cumin)' yes, '(Kharif)', '(Premonsoon)' no
                     crop = note.group(1).strip()
-                rng = parse_range(cell)
-                if not rng:
-                    continue
-                (m1, w1), (m2, w2) = rng
-                out.append(claim(claim_type="sowing_window", crop=crop, season=season,
-                                 water_regime=water, start_month=m1, start_week=w1,
-                                 end_month=m2, end_week=w2, quote_parts=[lab, cell],
-                                 statement=f"Normal sowing window of {crop} ({lab}) is {cell}."))
+                # Sangli sugarcane: 'Seasonal: Jan 15th -30th Pre seasonal: October 15th -November 15th'
+                segs = re.findall(r"([A-Z][A-Za-z -]*?)\s*:\s*([^:]+?)(?=\s+[A-Z][A-Za-z -]*:|$)", cell)
+                windows = [(f"{crop} ({name.strip()})", part.strip()) for name, part in segs] \
+                    if len(segs) >= 2 else [(crop, cell)]
+                for name, part in windows:
+                    rng = parse_range(part)
+                    if not rng:
+                        continue
+                    (m1, w1), (m2, w2) = rng
+                    out.append(claim(claim_type="sowing_window", crop=name, season=season,
+                                     water_regime=water, start_month=m1, start_week=w1,
+                                     end_month=m2, end_week=w2, quote_parts=[lab, part],
+                                     statement=f"Normal sowing window of {name} ({lab}) is {part}."))
     return [c for c in out if c]
 
 
@@ -512,6 +553,11 @@ JOIN = " "  # joins the two halves of a cell split by a page break (each half 
 def classify_condition(section, detail):
     """(condition, delay_weeks, dry_min, dry_max) from the table's section label + row label."""
     s = f"{section} {detail}"
+    d = re.search(r"(\d+)\s*[-–to]+\s*(\d+)\s*days?", s, re.I)
+    if re.search(r"normal\s+onset", detail, re.I):
+        # Tumkur p12: the row label is 'Normal onset followed by 15-20 days dry spell ... Delay by
+        # 2 weeks'; the row's own 'normal onset' wording wins over the 'delay' left in the cell
+        return "early_dry_spell", None, int(d.group(1)) if d else None, int(d.group(2)) if d else None
     m = re.search(r"delay(?:ed)?\s*(?:by|of)?\s*(\d+)\s*weeks?", s, re.I)
     if m:
         return "delayed_onset", int(m.group(1)), None, None
@@ -524,7 +570,6 @@ def classify_condition(section, detail):
         return "mid_season_drought_vegetative", None, None, None
     if re.search(r"mid[- ]?season", s, re.I):
         return None, None, None, None  # mid-season with no crop stage given: do not guess one
-    d = re.search(r"(\d+)\s*[-–to]+\s*(\d+)\s*days?", s, re.I)
     if re.search(r"dry spell|normal onset", s, re.I):
         return "early_dry_spell", None, int(d.group(1)) if d else None, int(d.group(2)) if d else None
     return None, None, None, None
@@ -544,8 +589,10 @@ def recommended(cell):
 
 def measures_of(cell):
     cell = cell.replace(JOIN, " ")
-    # bullets, or list numbers '1)' at the start / after a space (not 'T-9)' in a variety name)
-    parts = [p.strip(" .;") for p in re.split(r"\s*[•●▪]\s*|(?:^|\s)\d\)\s*", cell) if p.strip(" .;-")]
+    # bullets, or list numbers '1)' / '3.Resow' at the start / after a space (not 'T-9)' in a
+    # variety name, not '2.5 %')
+    parts = [p.strip(" .;") for p in re.split(r"\s*[•●▪]\s*|(?:^|\s)\d\)\s*|(?:^|\s)\d\.(?=\s*[A-Za-z])\s*", cell)
+             if p.strip(" .;-")]
     return parts or [cell]
 
 

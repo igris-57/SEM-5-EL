@@ -13,6 +13,7 @@ MONTHS = {m: i + 1 for i, m in enumerate(
     ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"])}
 WORDS = {"first": 1, "second": 2, "third": 3, "fourth": 4, "last": 4, "fifth": 4, "end": 4}
 _M = r"(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\.?"
+_M_RAW = r"(?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\.?"  # same, no group
 _N = r"(\d{1,2})\s*(?:st|nd|rd|th)?"
 _W = r"(first|second|third|fourth|fifth|last|\d)\s*(?:st|nd|rd|th)?"
 
@@ -37,6 +38,18 @@ def _clean(s):
     s = re.sub(r"\b(?:ist|1st|first)\s*(?:fn|fortnight)\b", "1st fortnight", s)
     s = re.sub(r"\b(?:iind|2nd|second)\s*(?:fn|fortnight)\b", "2nd fortnight", s)
     s = re.sub(r"(st|nd|rd|th)(week|fortnight)", r"\1 \2", s)  # "2ndweek"
+    s = s.replace("`", "")                                     # "3rd week of` August"
+    s = re.sub(r"(\d)h\b", r"\1th", s)                          # "15h June"
+    s = re.sub(r"\bto(?=\d)", "to ", s)                        # "May to17 th June"
+    # Roman week numbers: "June IV week", "July III week"
+    s = re.sub(r"\b(iv|iii|ii|i)(?:st|nd|rd|th)?\s*(?=week)",
+               lambda m: {"i": "1st ", "ii": "2nd ", "iii": "3rd ", "iv": "4th "}[m.group(1)], s)
+    # "1-3rd week of Nov." is a range of weeks
+    s = re.sub(r"\b([1-4])\s*(?:st|nd|rd|th)?\s*-\s*([1-4])\s*(st|nd|rd|th)?\s*weeks?\b",
+               lambda m: f"{m.group(1)}st week to {m.group(2)}th week", s)
+    # two dates with nothing between them: "1st Nov. 20 th Nov" -> "... to ..."
+    s = re.sub(rf"(\d{{1,2}}(?:st|nd|rd|th)?\s*{_M_RAW})\s+(?=\d{{1,2}}(?:st|nd|rd|th)?\s*{_M_RAW})",
+               r"\1 to ", s)
     return re.sub(r"\s+", " ", s).strip()
 
 
@@ -83,7 +96,7 @@ PATTERNS = [
         else (1 if m.group(2) in ("1", "first") else 3))),
     (rf"\b(end|last week|mid|middle)(?: of)? {_M}", _end_mid),
     (rf"{_M}\s*end\b", lambda m, **_: (MONTHS[m.group(1)], 4)),         # "July end"
-    (rf"{_M}\s*,?\s*{_W} week\b", lambda m, **_: (MONTHS[m.group(1)], _wk(m.group(2)))),
+    (rf"{_M}\s*[,-]?\s*{_W} week\b", lambda m, **_: (MONTHS[m.group(1)], _wk(m.group(2)))),
     (rf"{_W} week\b(?: of)?(?: {_M})?", _week),
     # a span of days "11th-20th June" starts at the first day (ends at the second)
     (rf"{_M}\s*{_N}\s*(?:-|to)\s*{_N}\b", lambda m, is_end=False, **_: (    # "Oct. 15-25"
@@ -93,6 +106,9 @@ PATTERNS = [
         (MONTHS[m.group(3)], week_of_day(int(m.group(2 if is_end else 1))))
         if max(int(m.group(1)), int(m.group(2))) <= 31 else None)),
     (rf"\b{_N}\s*(?:of\s+)?{_M}", _day_month),                          # "15th June", "1st of June"
+    # "May 2nd – May 3rd" (Hassan: "start and end of normal sowing week"), "June 2nd to July 2nd
+    # week": month + ordinal 1-4 is a week in these plans (as day 1 it is week 1 either way)
+    (rf"{_M}\s*([1-4])\s*(?:st|nd|rd|th)\b", lambda m, **_: (MONTHS[m.group(1)], int(m.group(2)))),
     (rf"{_M}\s*{_N}\b", _month_day),
     (rf"^{_N}$", _bare_day),
 ]

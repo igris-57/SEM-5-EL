@@ -114,7 +114,8 @@ def candidates(claims, plan):
                 new = plan_style(random.choice(pool))
                 yield ("crop_not_grown", c, old, new, frag, new,
                        f"recommended {new}: no area in {dist} 1997-2023")
-        elif t == "sowing_window" and c.get("start_week") and c.get("end_week"):
+        elif t == "sowing_window" and c.get("start_week") and c.get("end_week") \
+                and len(c["quote_parts"]) == 2:  # not Pali's start/end split over two rows
             frag = next((f for f in c["quote_parts"]
                          if MONTH_NAMES[c["start_month"] - 1][:3].lower() in f.lower()), None)
             old = find_fragment(text, frag) if frag else None
@@ -206,11 +207,18 @@ def write_answers(rows):
 
 def planted_claims(a):
     """The claims in claims_rules_planted/ that carry planted error `a` (a row of answers.csv)."""
-    f = ROOT / "claims_rules_planted" / f"{a['plan_id'].replace('@planted', '')}.jsonl"
+    plan = a["plan_id"].replace("@planted", "")
+    f = ROOT / "claims_rules_planted" / f"{plan}.jsonl"
     cs = [json.loads(l) for l in f.read_text(encoding="utf-8").splitlines()] if f.exists() else []
+    # a claim whose quote is the same as the real plan's claim was not changed, even if its value
+    # happens to equal the planted one (Jodhpur p6 wheat 15th Nov - 7th Dec)
+    real = ROOT / "claims_rules" / f"{plan}.jsonl"
+    same = {(c["claim_id"], tuple(c["quote_parts"]))
+            for c in map(json.loads, real.read_text(encoding="utf-8").splitlines())} if real.exists() else set()
     pv, et = a["planted_value"], a["error_type"]
     return [c for c in cs
-            if c["page"] == int(a["page"]) and c["claim_type"] == a["claim_type"] and (
+            if (c["claim_id"], tuple(c["quote_parts"])) not in same
+            and c["page"] == int(a["page"]) and c["claim_type"] == a["claim_type"] and (
                 (et == "crop_not_grown" and any(key(pv) in key(x or "")
                                                 for x in [c.get("crop")] + c.get("recommended_crops", [])))
                 or (et.startswith("rainfall") and c.get("value") == float(pv))

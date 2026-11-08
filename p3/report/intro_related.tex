@@ -1,7 +1,10 @@
 % Person 3 -- Report section: Introduction and Related Work
 % IEEEtran conference format. Include with \input{intro_related} and add refs.bib.
-% Extractor numbers below are final (held-out review, 4 Nov 2026: review/claim_review_v2.xlsx).
+% Extractor numbers: review/claim_review_v2.xlsx (4 Nov 2026), scored BEFORE the fixes that
+% followed it, so the text says "an earlier version". Claim/planted counts: rebuild of 8 Nov.
 % TODO when Person 5 freezes results: add the headline agent-vs-baseline result to the contributions.
+% TODO team: contributions 2-4 (tests, agents, dashboard, open release) describe other people's
+%      work; check they match what was actually built before submitting.
 % Labels stay described as "labelled with AI assistance" (no hand check was done; the 30-row
 % spot-check in review/spotcheck.xlsx was a second AI-assisted pass, 30/30 agreed).
 
@@ -20,8 +23,8 @@ delayed by two to eight weeks, when a dry spell follows sowing, when drought str
 early, mid or late in the season, and when floods or heat waves occur.
 
 These plans are static documents built on the data of their time. Of the 105 plans
-used in this study, 93 are dated 2011 or 2012, and the plans we read cite crop
-statistics from 2004--2011. Since then the monsoon itself has been shown to change:
+used in this study, 93 are dated 2011 or 2012, and the crop statistics they cite date
+from 2000 to 2011, most often 2008--09. Since then the monsoon itself has been shown to change:
 extreme rain events over central India have become more frequent and
 stronger~\cite{goswami2006extreme,roxy2017threefold}, dry spells during the peak
 monsoon months have become more frequent~\cite{singh2014spells}, and trends differ
@@ -33,7 +36,7 @@ weak monsoon, the Union Agriculture Minister asked the states to review and upda
 their contingency plans for local conditions~\cite{pib2026kharif}. By August, ICAR-CRIDA
 had updated the plans of 342 districts in 15 states, but the updated plans are kept at
 district level and not maintained centrally~\cite{loksabha2026dacp}, so the plans that can
-be studied are still the published 2011--2013 versions. Yet we found no study that checks
+be studied are still the published versions, nearly all from 2011--2012. Yet we found no study that checks
 the plans against newer data at scale.
 
 Doing this by hand is slow. The 105 plans in our study run to 3,321 pages of
@@ -59,9 +62,11 @@ Our contributions are:
   \item A dataset of about 16,500 claims from 105 district contingency plans in
         Karnataka, Maharashtra, Rajasthan and Telangana, linked to Census 2011 districts,
         in which every claim carries a page reference and a verbatim quote. On 300
-        claims from 30 held-out plans, labelled with AI assistance against the source
-        PDFs, the extractor reaches 93.0\% precision and 89.7\% recall. The dataset also
-        includes 683 planted errors with known answers for testing the checkers.
+        claims from 30 plans not used during development, labelled with AI assistance
+        against the source PDFs, an earlier version of the extractor reached 93.0\%
+        precision, and 89.7\% recall on 30 pages of those plans; the errors found there
+        were then fixed. The dataset also includes 681 planted errors with known answers
+        for testing the checkers.
   \item A set of code tools that compare 1981--2010 with 2011 onward for each
         district: seasonal rainfall, sowing-rain onset, dry spells, heavy-rain days,
         crop-area ranks and crop shifts in deficient years, with non-parametric tests
@@ -115,9 +120,10 @@ claims, SciFact~\cite{wadden2020scifact} checks scientific claims against paper
 abstracts, and TabFact~\cite{chen2020tabfact} checks claims against a single table.
 FActScore~\cite{min2023factscore} splits long text into atomic facts and scores each
 one, which is close to how we split plans into claims, although our extractor uses rules
-over the plans' fixed template rather than an LLM. On a nine-page sample, an LLM
-extractor (Gemini~3.5 Flash) gave the same values wherever both extracted a fact, but
-returned only 3 of the 33 rows of two contingency tables. In all of these the evidence is
+over the plans' fixed template rather than an LLM. (On a nine-page sample, an LLM
+extractor, Gemini~3.5 Flash, gave the same values wherever both extracted a fact, but
+left one page's dates empty and returned only 3 of the 33 rows of two other contingency
+tables.) In all of these benchmarks the evidence is
 a passage or a small table, and the label is fixed in time. Our claims are checked
 against long time series, and the question is whether a statement that was true
 for the 2000s still holds since 2011. That requires computation rather than lookup.
@@ -133,5 +139,5 @@ ChatClimate~\cite{vaghefi2023chatclimate} grounds GPT-4 answers in the IPCC AR6
 reports. We build on these ideas but go one step further on numbers: our agents never
 compute a value themselves; every number comes from a code tool, and a separate
 Verifier re-runs the cited tool calls and sends disagreements back for re-checking.
-To our knowledge, this is the first use of such a system to audit government
-agricultural plans against long-term observational data.
+We found no earlier use of such a system to audit government agricultural plans
+against long-term observational data.
