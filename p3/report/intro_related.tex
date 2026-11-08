@@ -115,7 +115,9 @@ claims, SciFact~\cite{wadden2020scifact} checks scientific claims against paper
 abstracts, and TabFact~\cite{chen2020tabfact} checks claims against a single table.
 FActScore~\cite{min2023factscore} splits long text into atomic facts and scores each
 one, which is close to how we split plans into claims, although our extractor uses rules
-over the plans' fixed template rather than an LLM. In all of these the evidence is
+over the plans' fixed template rather than an LLM. On a nine-page sample, an LLM
+extractor (Gemini~3.5 Flash) gave the same values wherever both extracted a fact, but
+returned only 3 of the 33 rows of two contingency tables. In all of these the evidence is
 a passage or a small table, and the label is fixed in time. Our claims are checked
 against long time series, and the question is whether a statement that was true
 for the 2000s still holds since 2011. That requires computation rather than lookup.

@@ -146,3 +146,56 @@ plan figures, planted claims, crop names (with P2), report Intro + Related work.
 - Same day: faculty rule "no datasets in the repo". Rewrote the single commit without data and
   force-pushed. Repo now has code, report, docs, download scripts + links CSV only. Data
   (raw + p3 outputs + review xlsx) shared via Google Drive at the same paths; see .gitignore.
+- Drive folder I:\SEM5\EL\MAINEL_DRIVE_DATA (1.4 GB, copies; file counts verified) + README.txt with setup steps and structure.
+
+## 4 Nov 2026 — crop data provenance (teammate asked)
+- Zone.Identifier on every data file: whole DOCS/data/Main EL folder came as one internet-
+  downloaded data.zip (zip now deleted). Files created 3 Oct 2026 19:33-20:05 by whoever ran
+  download_data.py; the crop CSV was added by hand at 20:02 (auto download 404'd). The user did
+  NOT download it.
+- File = India Data Portal "Crop Wise Area Production Yield" (resource f980409d, 1997-2023
+  version, updated 14 Dec 2023; source DES data.desagri.gov.in). Covers 1997-98 to 2022-23 for
+  KA/MH/RJ/TG. 2023-24 and 2024-25 not in it; dataful.in has them (free account).
+- Reply drafted for the teammate loading PostgreSQL (skip season "Total", crosswalk, units).
+
+## 8 Nov 2026 — Gemini comparison finished
+- `python -m p3.compare_llm` (gemini-3.5-flash, free tier, 1 new request; 8 pages from cache)
+  -> `review/llm_comparison.csv`. 9 held-out pages: rules 152 claims, Gemini 133, 0 rejected.
+  Paired 98, identical values 86. 29.6k input / 33.7k output tokens.
+- Read every disagreement:
+  - 12 "differ" = all Buldhana p12: Gemini's retried answer left start_month/week empty;
+    rules' June week 4 for "25th June- 1st July" is right.
+  - Gemini missed: Nanded p10 all 18 rows (0 claims even after retry), Jaipur p14 12 of 15,
+    Barmer p4 the 8 Total-column figures.
+  - Belgaum p5: 12 + 12 one-sided items are the same Total figures with identical numbers,
+    unpaired only because the season label differs (pairing artefact). Gemini also gave 4
+    Summer figures (Summer is not a schema season, by design) and rules 1 Rabi 0 kg/ha.
+  - Nashik p3: Gemini's 17 extra = irrigated/rainfed/season PARTS; rules store each crop's total
+    (all 15 present, same numbers). Granularity difference, not a miss.
+  - Sindhudurg p19: 2 vs 3 one-sided rows, condition labelled differently.
+- So: where both give a value it is the same; Gemini drops whole tables; at 20 requests/day
+  the 3,321 pages would take ~166 days. Supports the rule-based choice.
+- intro_related.tex: one sentence added in Related Work after "rather than an LLM".
+
+## 8 Nov 2026 — hand-off to P4/P5, draft eval set, status page
+- P4 update (relayed): agent code ready, LLM undecided (Ollama 7B on RTX 5070 vs paid Groq
+  gpt-oss-120b); asked P3 for pilot claims in data/processed/claims/<code>.jsonl + claims_planted/.
+  P4's contracts/decision_rules.md read. User: leave Ollama for now; a friend with an RTX 4050
+  may run it later.
+- `p3/export.py` -> data/processed/: claims/<code>.jsonl and claims_planted/<code>.jsonl for all
+  105 plans (104 codes: Thane + Palghar share 517, one file), each claim + rule_type, rule_crops
+  (crop-data names; "No change"/"Fallow" left out), rule_note. eval/planted_answers.csv = answer
+  key + planted_claim_id (P5 only). 4,693 claims have a rule, 11,821 not.
+- `p3/planted.py`: matching moved into planted_claims(); sowing match now checks start AND end
+  (start-only matched unplanted rows, e.g. Chitradurga Ragi). verify still 683/683, answers.csv
+  byte-identical.
+- `p3/evalset.py` -> eval/eval_set_draft.csv: 200 real (40 per rule type, round-robin states)
+  + 100 planted (25 per error type), core districts only (pilots excluded per work split),
+  Palghar excluded (its 2016 plan repeats Thane 2011 figures: 38 of 58 statements identical,
+  same numbers), seed 2026, reproducible (same md5 twice), all 300 claim ids resolve.
+- Found in decision rules (raised, not changed): rainfall/onset rules ignore the plan's own
+  number, so 288 planted rainfall/onset errors cannot be caught; sowing rule vs rabi windows;
+  rainy days; 11,821 claims without a rule; no labels for real claims.
+- data/processed/README.md (format + questions), p3/STATUS.md (done / not done / hand-over),
+  tests/test_export.py (41 tests pass). .gitignore: data/processed/, review/llm_comparison.csv.
+- Copied data/processed + llm_comparison.csv to MAINEL_DRIVE_DATA; its README.txt updated.

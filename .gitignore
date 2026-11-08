@@ -18,6 +18,9 @@ claims_rules_planted/
 plan_figures.csv
 crop_names.csv
 review/*.xlsx
+review/llm_comparison.csv
+# p3/export.py output for Person 4 / Person 5
+data/processed/
 
 # ---- Caches and temporary files ----
 claims/_cache/

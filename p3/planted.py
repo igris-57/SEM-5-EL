@@ -204,22 +204,27 @@ def write_answers(rows):
         w.writerows(old + rows)
 
 
+def planted_claims(a):
+    """The claims in claims_rules_planted/ that carry planted error `a` (a row of answers.csv)."""
+    f = ROOT / "claims_rules_planted" / f"{a['plan_id'].replace('@planted', '')}.jsonl"
+    cs = [json.loads(l) for l in f.read_text(encoding="utf-8").splitlines()] if f.exists() else []
+    pv, et = a["planted_value"], a["error_type"]
+    return [c for c in cs
+            if c["page"] == int(a["page"]) and c["claim_type"] == a["claim_type"] and (
+                (et == "crop_not_grown" and any(key(pv) in key(x or "")
+                                                for x in [c.get("crop")] + c.get("recommended_crops", [])))
+                or (et.startswith("rainfall") and c.get("value") == float(pv))
+                or (et == "onset_shift_4w" and f"{c['start_month']}/{c['start_week']}" == pv)
+                or (et == "sowing_shift_6w"
+                    and f"{c['start_month']}/{c['start_week']}-{c['end_month']}/{c['end_week']}" == pv))]
+
+
 def verify():
     """Mark each planted error extracted=yes/no, using claims_rules_planted/ (run rules --planted first)."""
     path = OUT / "answers.csv"
     rows = list(csv.DictReader(open(path, encoding="utf-8")))
     for a in rows:
-        f = ROOT / "claims_rules_planted" / f"{a['plan_id'].replace('@planted', '')}.jsonl"
-        cs = [json.loads(l) for l in f.read_text(encoding="utf-8").splitlines()] if f.exists() else []
-        pv, et = a["planted_value"], a["error_type"]
-        a["extracted"] = "yes" if any(
-            c["page"] == int(a["page"]) and c["claim_type"] == a["claim_type"] and (
-                (et == "crop_not_grown" and any(key(pv) in key(x or "")
-                                                for x in [c.get("crop")] + c.get("recommended_crops", [])))
-                or (et.startswith("rainfall") and c.get("value") == float(pv))
-                or (et in ("onset_shift_4w", "sowing_shift_6w")
-                    and f"{c['start_month']}/{c['start_week']}" == pv.split("-")[0]))
-            for c in cs) else "no"
+        a["extracted"] = "yes" if planted_claims(a) else "no"
     with open(path, "w", newline="", encoding="utf-8") as fh:
         w = csv.DictWriter(fh, fieldnames=ANSWER_FIELDS)
         w.writeheader()
