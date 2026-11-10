@@ -7,7 +7,7 @@ Rules used here:
   - core districts only: the 5 pilots are for tuning (work split: "Tune only on pilot
     planted claims, never on core ones")
   - Palghar is left out: its 2016 plan repeats the Thane 2011 plan's figures
-  - real claims: only claims with a decision rule and no open rule_note, spread evenly over
+  - real claims: only check_status "checkable" (decision rules v2), spread evenly over
     rule types, then round-robin over states
   - planted claims: same filter, spread evenly over error types; one claim per planted error;
     a claim id is never in the set as both its real and its planted version
@@ -67,11 +67,11 @@ def main():
     for row in csv.DictReader(open(DATA / "eval" / "planted_answers.csv", encoding="utf-8")):
         plan = row["plan_id"].replace("@planted", "")
         ids = row["planted_claim_id"]
-        # same rule as the real claims (a rule, no open rule_note); the same crop planted twice on
+        # same filter as the real claims (checkable under v2); the same crop planted twice on
         # one page lands on the same claims: keep one
         if plan not in skip and ids and ids not in seen:
             c = planted_by_id[ids.split(";")[0]]
-            if c["rule_type"] and not c["rule_note"]:
+            if c["check_status"] == "checkable":
                 seen.add(ids)
                 by_error[row["error_type"].split("_x")[0]].append(row)
     planted = spread(by_error, a.planted, rng)
@@ -81,7 +81,7 @@ def main():
     for f in sorted((DATA / "claims").glob("*.jsonl")):
         for line in f.read_text(encoding="utf-8").splitlines():
             c = json.loads(line)
-            if c["plan_id"] not in skip and c["rule_type"] and not c["rule_note"] \
+            if c["plan_id"] not in skip and c["check_status"] == "checkable" \
                     and c["claim_id"] not in planted_ids:
                 by_type[c["rule_type"]][c["state"]].append(c)
     per_type = a.real // len(by_type)
@@ -103,6 +103,7 @@ def main():
                      "rule_type": c["rule_type"], "claim_type": c["claim_type"],
                      "error_type": row["error_type"] if row else "",
                      "expected_label": row["expected_label"] if row else "",
+                     "expected_reason": row["expected_reason"] if row else "",
                      "statement": c["statement"]})
         blind.append({"eval_id": eid, **c})
     with open(OUT, "w", newline="", encoding="utf-8") as f:

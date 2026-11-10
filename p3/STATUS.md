@@ -11,7 +11,7 @@ plus the report's Introduction and Related Work. Full history: `p3/WORKLOG.md`.
 | Claim extractor + format check + exact-quote check | Rule-based parser over the plan tables: 16,506 claims, each with page and word-for-word quote | `p3/claims/rules.py` → `claims_rules/` (Drive) |
 | Pilot review, then spot-check | 30 plans not used during development, 300 claims: precision 93.0%, recall 89.7% (30 pages). Scored on the version before the fixes it led to, so those 30 plans are no longer held out. Labels made with AI assistance, not by hand | `review/claim_review_v2.xlsx` (Drive) |
 | Plan figures | Every number a plan states about its district | `plan_figures.csv` (Drive) |
-| Planted claims for all 105 | 681 planted errors with answer key; all 681 re-extracted from the planted copies | `planted_text/`, `claims_rules_planted/` (Drive) |
+| Planted claims for all 105 | 595 planted errors with answer key, all catchable under decision rules v2; all 595 re-extracted from the planted copies | `planted_text/`, `claims_rules_planted/` (Drive) |
 | crop_names.csv | 1,224 plan crop names mapped to crop-data names | `crop_names.csv` (Drive) |
 | Report: Introduction and Related Work | LaTeX, IEEE template | `p3/report/` |
 | LLM comparison | 9 held-out pages, rules vs Gemini 3.5 Flash (free tier) | `p3/compare_llm.py` → `review/llm_comparison.csv` |
@@ -55,6 +55,9 @@ A separate AI reviewer with no access to this work's history re-checked the outp
   - answer key: 2 errors pointed at claims that were never changed (same value by chance); the
     matcher now ignores claims whose text equals the real plan's
   - Pali's split windows are no longer used for planted errors (683 -> 681)
+- 10 Nov, decision rules v2 (P4): planted errors re-made so all are catchable (crops grown in the
+  same state from 2010-11 on, kharif windows only): 681 -> 595. Claims get `check_status`
+  (checkable 3,872 / nee_by_rule 951 / not_checkable 11,683), the answer key `expected_reason`.
   - evaluation set: shuffled so the eval id does not reveal planted claims, a blind file for the
     agents, no claim in both versions, planted items follow the same rule filter as real ones
   - paper: "an earlier version of the extractor reached 93.0% ...", crop statistics years
@@ -74,13 +77,14 @@ A separate AI reviewer with no access to this work's history re-checked the outp
 | crop_names.csv checked by Person 2 | Waiting on P2 | P2 |
 | Fixes from Person 5's check 1 | No problems reported yet | P5 |
 | Headline result in the Introduction | Waiting on P5's final numbers | P5, then one sentence in `p3/report/intro_related.tex` |
-| Final evaluation set | Team must agree on the mix and the decision-rule questions | All; see `data/processed/README.md` |
+| Final evaluation set | Built for decision rules v2 (draft, 300 claims); the 200 real claims still need hand labels | Two people label them (team to decide who), then freeze |
 
-## Questions raised for the team
+## Decision rules
 
-See `data/processed/README.md`: 11,821 claims have no decision rule; the rainfall and onset rules
-ignore the plan's own number, so 288 planted errors cannot be caught; the sowing rule does not
-fit rabi windows; Gulbarga's plan covers Gulbarga + Yadgir; Palghar repeats Thane.
+P3 raised the open questions (claims with no rule, rules ignoring the plan's own number, rabi
+windows, crops with no recent data). P4 settled them in decision rules v2 on 10 Nov; the claim
+files, answer key and evaluation set follow v2. Details: `data/processed/README.md`. Also there:
+Gulbarga's plan covers Gulbarga + Yadgir, and Palghar repeats Thane.
 
 ## Rebuild everything
 

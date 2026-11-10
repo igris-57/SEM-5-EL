@@ -227,3 +227,23 @@ plan figures, planted claims, crop names (with P2), report Intro + Related work.
   failed_downloads.txt, claims_pilot_run.log, review/heldout_plans.txt moved to Drive and
   ignored; claims/_cache on Drive for reproducing the Gemini comparison. Root README.md added.
 - Drive folder: all 1,109 data files identical to the project (hash check).
+
+## 10 Nov 2026 — decision rules v2 (P4) applied
+- P4 (Satwik) finalised contracts/decision_rules.md v2: plan figure 20%+ off 1981-2010 (min
+  10 mm / 2 days) or onset 14+ days -> contradicted; crops missing from crop data -> NEE;
+  rabi/summer windows -> NEE; rainy days = rainfall rule; claims with no rule left out. Asked for
+  label names; user sent: verdicts unchanged, `expected_reason` plan_figure|recent_data,
+  `check_status` checkable|not_checkable|nee_by_rule.
+- Found: under v2, 10 of 35 pilot planted errors (and ~200 of 681 overall) were uncatchable: crop
+  pool fell back to other states' crops (Moth/Korra in Karnataka) and 93 sowing errors sat on
+  rabi windows. Also in our states mango/tomato/brinjal/cabbage/orange data stop in 2003-04.
+- crops.py: state_field_crops only counts area from 2010-11 on; state_recent_crops() added.
+  planted.py: pool = same-state recent field crops never grown in the district (no other-state
+  fallback); sowing errors on kharif windows only; answers get expected_reason.
+  export.py: check_status per v2 (crop with no state data from 2010-11 on -> nee_by_rule).
+  evalset.py: filters on check_status, key has expected_reason.
+- Result: 595 planted errors (rainfall 191, onset 97, sowing 154, crop 153), all checkable and
+  re-extracted; pilots 29, all checkable. Claims: checkable 3,872 (23%), nee_by_rule 951,
+  not_checkable 11,683. Eval set 200+100, all checkable. 50 tests pass.
+- Docs: data/processed/README.md rewritten for v2; STATUS.md; intro 681 -> 595; Drive synced
+  (hash-identical). User re-uploads planted_text/, claims_rules_planted/, data/processed/.

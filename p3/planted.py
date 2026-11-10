@@ -8,12 +8,14 @@ check 2 tests extraction and checking together.
     python -m p3.planted --pilot
 
 Writes planted_text/<State>/<District>.json (plan_text format, plan_id gets "@planted")
-and planted_text/answers.csv (one row per planted error, expected label "contradicted").
+and planted_text/answers.csv (one row per planted error, expected label "contradicted",
+expected_reason "plan_figure" for rainfall/onset, "recent_data" for crop/sowing).
 
-Error types (each one large enough that the data should clearly contradict it):
+Error types (each one large enough that decision rules v2 should clearly contradict it):
   crop_not_grown   a crop in 1.7 (area) or 2.x (recommended crop) replaced by a field crop
-                   the district has had no area under in any year 1997-2023
-  sowing_shift_6w  a sowing window (1.12) moved 6 weeks later
+                   grown elsewhere in the same state from 2010-11 on, but never in this
+                   district (no area in any year 1997-2023)
+  sowing_shift_6w  a kharif sowing window (1.12) moved 6 weeks later
   onset_shift_4w   the normal SW monsoon onset week (1.2) moved 4 weeks later
   rainfall_x1.6    a normal rainfall figure (1.2) multiplied by 1.6 (x0.6 if > 2000 mm)
 """
@@ -38,7 +40,7 @@ MONTH_NAMES = ["January", "February", "March", "April", "May", "June", "July", "
 ORD = {1: "1st", 2: "2nd", 3: "3rd", 4: "4th"}
 ANSWER_FIELDS = ["planted_id", "plan_id", "page", "error_type", "source_claim_id",
                  "claim_type", "original_text", "planted_text", "original_value",
-                 "planted_value", "expected_label", "note", "extracted"]
+                 "planted_value", "expected_label", "expected_reason", "note", "extracted"]
 
 
 def shift_week(month, week, weeks):
@@ -83,11 +85,11 @@ def find_fragment(page_text, frag):
 def candidates(claims, plan):
     """Yield (error_type, claim, old_substring, new_substring, original, planted, note)."""
     st, dist = plan["state"], plan["district"]
+    # planted crop: grown elsewhere in the same state from 2010-11 on, never in this district, so
+    # decision rules v2 can catch it (another state's crop is "missing from the crop data")
     grown = {key(c) for c in district_crops(st, dist)}
-    pool = [c for c in state_field_crops(st) if key(c) not in grown]
-    if not pool:  # district grows every common crop of its state: use other states' crops
-        pool = [c for s in ("Karnataka", "Maharashtra", "Rajasthan", "Telangana")
-                for c in state_field_crops(s) if key(c) not in grown]
+    pool = [c for c in state_field_crops(st) if key(c) not in grown] or \
+        [c for c in state_field_crops(st, min_districts=1) if key(c) not in grown]
     pool = sorted(set(pool))
     pages = {p["page"]: p["text"] for p in plan["pages"]}
 
@@ -115,7 +117,8 @@ def candidates(claims, plan):
                 yield ("crop_not_grown", c, old, new, frag, new,
                        f"recommended {new}: no area in {dist} 1997-2023")
         elif t == "sowing_window" and c.get("start_week") and c.get("end_week") \
-                and len(c["quote_parts"]) == 2:  # not Pali's start/end split over two rows
+                and c.get("season") == "kharif" \
+                and len(c["quote_parts"]) == 2:  # rules v2 check kharif only; not Pali's split rows
             frag = next((f for f in c["quote_parts"]
                          if MONTH_NAMES[c["start_month"] - 1][:3].lower() in f.lower()), None)
             old = find_fragment(text, frag) if frag else None
@@ -179,7 +182,11 @@ def plant_plan(plan_id, per_type=2):
             "page": c["page"], "error_type": etype, "source_claim_id": c["claim_id"],
             "claim_type": c["claim_type"], "original_text": old, "planted_text": new,
             "original_value": orig, "planted_value": plant,
-            "expected_label": "contradicted", "note": note})
+            "expected_label": "contradicted",
+            # rules v2: a wrong rainfall/onset figure is caught against the plan's own number;
+            # a crop or sowing error against what the data shows now
+            "expected_reason": "plan_figure" if base in ("rainfall", "onset_shift_4w") else "recent_data",
+            "note": note})
 
     planted["plan_id"] = f"{plan_id}@planted"
     planted["planted_from"] = plan_id

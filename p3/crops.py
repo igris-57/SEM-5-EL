@@ -214,13 +214,24 @@ def district_crops(state, plan_district):
     return rows.groupby(["crop_name", "year"]).area.sum().groupby("crop_name").max().to_dict()
 
 
+RECENT_FROM = "2010"  # decision rules v2: a crop with no data from 2010-11 on counts as missing
+
+
 def state_field_crops(state, min_districts=5):
-    """Field crops grown (area > 0) in at least `min_districts` districts of the state."""
+    """Field crops grown (area > 0) from 2010-11 on in at least `min_districts` districts of the
+    state, so that a check under decision rules v2 can find them in the crop data."""
     t = _crop_table()
     field = {"Cereals", "Pulses", "Oilseeds", "Fiber Crops", "Sugar"}
-    rows = t[(t.state_name == state) & t.crop_type.isin(field) & (t.area > 0)]
+    rows = t[(t.state_name == state) & t.crop_type.isin(field) & (t.area > 0) & (t.year >= RECENT_FROM)]
     n = rows.groupby("crop_name").district_name.nunique()
     return sorted(c for c, k in n.items() if k >= min_districts and not c.startswith("Other"))
+
+
+@lru_cache(maxsize=None)
+def state_recent_crops(state):
+    """Crop-data names with area > 0 anywhere in the state from 2010-11 on."""
+    t = _crop_table()
+    return frozenset(t[(t.state_name == state) & (t.area > 0) & (t.year >= RECENT_FROM)].crop_name)
 
 
 def claim_crop_names():
